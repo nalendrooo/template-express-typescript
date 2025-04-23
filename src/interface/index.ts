@@ -1,3 +1,5 @@
+import { Request } from "express"
+
 export type ErrorCode =
     | 'BAD_REQUEST'
     | 'UNAUTHORIZED'
@@ -86,24 +88,28 @@ export interface PaginatedResponse<T> extends ApiResponse<T[]> {
     meta?: Meta
 }
 
-export interface QueryParams {
+export interface IQueryParams {
     page?: string
     perPage?: string
     sort?: string
     search?: string
-    role?: string
-    archive?: 'yes' | 'no'
-    payment?: 'BELUM_DIBAYAR' | 'SEDANG_DIVERIFIKASI' | 'SUDAH_DIBAYAR' | 'REJECT' | 'CANCEL'
-    status?: 'SEDANG_DIVERIFIKASI' | 'SUDAH_DIVERIFIKASI' | 'CANCEL' | 'REJECT'
-    idJenisIklan?: string
-    startDate?: string
-    endDate?: string
+
+    slug?: string
 }
 
 export interface IJWTPayload {
-    id: number
-    username: string
-    role: string
-    iat: number
-    exp: number
+    gid: string
 }
+
+export interface AuthRequest extends Request {
+    token: {
+        gid: string
+    }
+}
+
+// models/DecodedToken.ts
+export interface DecodedToken {
+    gid: string; // Properti yang ingin kamu tambahkan
+    [key: string]: any; // Untuk properti tambahan lainnya
+  }
+  

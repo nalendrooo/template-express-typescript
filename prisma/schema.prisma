@@ -1,11 +1,6 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
+  output   = "../generated/client"
 }
 
 datasource db {
@@ -13,12 +8,315 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  username String @id @unique @db.VarChar(100)
-  password String @db.VarChar(100)
-  name    String @db.VarChar(100)
-  token   String? @db.VarChar(100)
+model Users {
+  gid       String  @id
+  full_name String?
+  email     String? @unique
+  phone     String?
+  school    String?
+  user_type Int?
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  CourseCreator CourseCreator[]
+  CourseLogging CourseLogging[]
 
   @@map("users")
+}
 
+model Course {
+  id            Int             @id @default(autoincrement())
+  title         String
+  description   String          @db.Text
+  cover         String
+  isActive      Boolean         @default(false) @map("is_active")
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+  price         Int
+  slug          String          @unique
+
+  CourseLoggings CourseLogging[]
+  CourseTopics  CourseTopic[]
+  Syllabus      Syllabus[]
+  CourseCreator CourseCreator[]
+
+  @@index([title], map: "idx_title")
+  @@map("course")
+}
+
+model CourseCreator {
+  id       Int      @id @default(autoincrement())
+  courseId Int      @map("course_id")
+  userId   String   @map("user_id")
+  as       CourseAs
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  Course Course @relation(fields: [courseId], references: [id])
+  User   Users  @relation(fields: [userId], references: [gid])
+
+  @@map("course_creator")
+}
+
+model CourseLogging {
+  id                Int    @id @default(autoincrement())
+  courseId          Int    @map("course_id")
+  userId            String @map("user_id")
+  syllabusContentId Int    @map("syllabus_content_id")
+  materialContentId Int?   @map("material_content_id")
+  examId            Int?   @map("exam_id")
+  isRead            Boolean @default(false) @map("is_read")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  Course Course @relation(fields: [courseId], references: [id])
+  User   Users  @relation(fields: [userId], references: [gid])
+
+  SyllabusContent SyllabusContent @relation(fields: [syllabusContentId], references: [id])
+  MaterialContent MaterialContent? @relation(fields: [materialContentId], references: [id])
+  Exam            Exam?            @relation(fields: [examId], references: [id])
+
+  @@map("course_logging")
+}
+
+model Category {
+  id            Int           @id @default(autoincrement())
+  title         String        @db.VarChar(255)
+  isActive      Boolean       @default(true) @map("is_active")
+  order         Int
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+  slug          String        @unique
+  SubCategories SubCategory[]
+
+  @@index([title], map: "idx_title")
+  @@map("category")
+}
+
+model SubCategory {
+  id         Int      @id @default(autoincrement())
+  title      String   @db.VarChar(255)
+  isActive   Boolean  @default(true) @map("is_active")
+  categoryId Int      @map("category_id")
+  order      Int
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  slug       String   @unique
+  Category   Category @relation(fields: [categoryId], references: [id])
+  Topics     Topic[]
+
+  @@index([title], map: "idx_title")
+  @@index([categoryId], map: "sub_category_category_id_fkey")
+  @@map("sub_category")
+}
+
+model Topic {
+  id            Int           @id @default(autoincrement())
+  title         String        @db.VarChar(255)
+  isActive      Boolean       @default(true) @map("is_active")
+  subCategoryId Int           @map("sub_category_id")
+  order         Int
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+  slug          String        @unique
+  CourseTopics  CourseTopic[]
+  SubCategory   SubCategory   @relation(fields: [subCategoryId], references: [id])
+
+  @@index([title], map: "idx_title")
+  @@index([subCategoryId], map: "topic_sub_category_id_fkey")
+  @@map("topic")
+}
+
+model CourseTopic {
+  id        Int      @id @default(autoincrement())
+  courseId  Int      @map("course_id")
+  topicId   Int      @map("topic_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  Course    Course   @relation(fields: [courseId], references: [id])
+  Topic     Topic    @relation(fields: [topicId], references: [id])
+
+  @@index([courseId], map: "course_topic_course_id_fkey")
+  @@index([topicId], map: "course_topic_topic_id_fkey")
+  @@map("course_topic")
+}
+
+model Syllabus {
+  id              Int               @id @default(autoincrement())
+  title           String
+  description     String            @db.Text
+  courseId        Int               @map("course_id")
+  isActive        Boolean           @default(false) @map("is_active")
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+  Course          Course            @relation(fields: [courseId], references: [id])
+  SyllabusContent SyllabusContent[]
+
+  @@index([title], map: "idx_title")
+  @@index([courseId], map: "syllabus_course_id_fkey")
+  @@map("syllabus")
+}
+
+model SyllabusContent {
+  id         Int                 @id @default(autoincrement())
+  syllabusId Int                 @map("syllabus_id")
+  title      String
+  type       SyllabusContentType @map("type")
+  order      Int
+  createdAt  DateTime            @default(now()) @map("created_at")
+  updatedAt  DateTime            @updatedAt @map("updated_at")
+  slug       String              @unique
+
+  Exams            Exam[]
+  MaterialContents MaterialContent[]
+  Syllabus         Syllabus          @relation(fields: [syllabusId], references: [id])
+  CourseLogging    CourseLogging[]
+
+  @@index([slug], map: "idx_slug")
+  @@index([syllabusId], map: "syllabus_content_syllabus_id_fkey")
+  @@map("syllabus_content")
+}
+
+model Exam {
+  id                Int             @id @default(autoincrement())
+  title             String
+  syllabusContentId Int             @map("syllabus_content_id")
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @updatedAt @map("updated_at")
+  description       String          @db.Text
+  SyllabusContent   SyllabusContent @relation(fields: [syllabusContentId], references: [id])
+  ExamQuestions     ExamQuestion[]
+  CourseLogging     CourseLogging[]
+
+  @@index([syllabusContentId], map: "exam_syllabus_content_id_fkey")
+  @@map("exam")
+}
+
+model ExamQuestion {
+  id           Int                  @id @default(autoincrement())
+  isActive     Boolean              @map("is_active")
+  examId       Int                  @map("exam_id")
+  createdAt    DateTime             @default(now()) @map("created_at")
+  updatedAt    DateTime             @updatedAt @map("updated_at")
+  description  String?              @db.Text
+  questionText String               @map("question_text") @db.Text
+  typeQuestion TypeQuestion         @map("type_question")
+  Exam         Exam                 @relation(fields: [examId], references: [id])
+  ExamOptions  ExamOptionQuestion[]
+
+  @@index([examId], map: "exam_question_exam_id_fkey")
+  @@map("exam_question")
+}
+
+model ExamOptionQuestion {
+  id             Int          @id @default(autoincrement())
+  optionText     String       @map("option_text") @db.Text
+  isTrue         Boolean?     @default(false) @map("is_true")
+  reason         String?      @db.Text
+  order          Int?
+  attachment     String?      @db.VarChar(255)
+  examQuestionId Int          @map("exam_question_id")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  ExamQuestion   ExamQuestion @relation(fields: [examQuestionId], references: [id])
+
+  @@index([examQuestionId])
+  @@map("option_questions")
+}
+
+model MaterialContentType {
+  id               Int                 @id @default(autoincrement())
+  title            TypeMaterialContent
+  MaterialContents MaterialContent[]
+
+  @@map("material_content_type")
+}
+
+model MaterialContent {
+  id                    Int      @id @default(autoincrement())
+  title                 String
+  materialContentTypeId Int      @map("material_content_type")
+  order                 Int
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+  slug                  String   @unique
+  syllabusContentId     Int      @map("syllabus_content_id")
+  estimatedTime         Int      @map("estimated_time")
+
+  Type                    MaterialContentType         @relation(fields: [materialContentTypeId], references: [id])
+  SyllabusContent         SyllabusContent             @relation(fields: [syllabusContentId], references: [id])
+  Attachments             MaterialContentAttachment[]
+  File                    MaterialContentFile?
+  MaterialContentLearning MaterialContentLearning?
+  MaterialContentTest     MaterialContentTest?
+  CourseLogging           CourseLogging[]
+
+  @@index([materialContentTypeId], map: "material_content_material_content_type_fkey")
+  @@index([syllabusContentId], map: "material_content_syllabus_content_id_fkey")
+  @@map("material_content")
+}
+
+model MaterialContentLearning {
+  id                Int             @id @default(autoincrement())
+  materialContentId Int             @unique @map("material_id")
+  content           String          @db.Text
+  MaterialContent   MaterialContent @relation(fields: [materialContentId], references: [id])
+
+  @@map("material_content_learning")
+}
+
+model MaterialContentTest {
+  id                Int             @id @default(autoincrement())
+  materialContentId Int             @unique @map("material_id")
+  MaterialContent   MaterialContent @relation(fields: [materialContentId], references: [id])
+
+  @@map("material_content_test")
+}
+
+model MaterialContentFile {
+  id                Int             @id @default(autoincrement())
+  materialContentId Int             @unique @map("material_content_id")
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @updatedAt @map("updated_at")
+  materialContent   MaterialContent @relation(fields: [materialContentId], references: [id])
+
+  @@map("material_content_file")
+}
+
+model MaterialContentAttachment {
+  id                Int             @id @default(autoincrement())
+  thumbnail         String
+  path              String
+  materialContentId Int             @map("material_content_id")
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @updatedAt @map("updated_at")
+  MaterialContent   MaterialContent @relation(fields: [materialContentId], references: [id])
+
+  @@index([materialContentId], map: "material_content_attachment_material_content_id_fkey")
+  @@map("material_content_attachment")
+}
+
+enum SyllabusContentType {
+  EXAM
+  MATERIAL
+}
+
+enum TypeQuestion {
+  MULTIPLE_CHOICE
+  MULTIPLE_CHOICE_COMPLEX
+}
+
+enum TypeMaterialContent {
+  VIDEO
+  READING
+  PRE_TEST
+  POST_TEST
+}
+
+enum CourseAs {
+  OWNER
+  COLLABORATOR
 }

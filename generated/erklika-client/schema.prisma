@@ -1,0 +1,32 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/erklika-client"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL_ERKLIKA")
+}
+
+model SvUser {
+  gid       String  @id
+  full_name String?
+  email     String? @unique
+  phone     String?
+  school    String?
+  user_type Int?
+
+  SvUserType SvUserType? @relation(fields: [user_type], references: [id])
+
+  @@map("sv_users")
+}
+
+model SvUserType {
+  id       Int     @id
+  title_id String?
+  title_en String?
+
+  SvUsers SvUser[]
+
+  @@map("sv_users_type")
+}

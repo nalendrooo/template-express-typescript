@@ -1,3 +1,28 @@
+import { Users } from "../../../generated/client"
+import { prisma } from "../../setup/prisma"
+
+export const getUserById = async ({
+    gid
+}: {
+    gid: string
+}) => {
+    return await prisma.users.findUnique({
+        where: {
+            gid
+        }
+    })
+}
+
+export const insertUser = async ({
+    data
+}: {
+    data: Users
+}) => {
+    return await prisma.users.create({
+        data
+    })
+}
+
 // import { PrismaClient } from "@prisma/client"
 // import { IArgUser, IBodyUser } from "./users.model"
 
@@ -165,3 +190,4 @@
 //         }
 //     })
 // }
+
